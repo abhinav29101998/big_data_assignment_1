@@ -1,0 +1,62 @@
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, regexp_extract, avg, length
+
+# ---------------------------------------------------
+# Step 1: Start Spark session
+# ---------------------------------------------------
+spark = SparkSession.builder.appName("Q10_BookMetadataAnalysis").getOrCreate()
+
+# ---------------------------------------------------
+# Step 2: Read Gutenberg text files
+# Creates DataFrame with columns: (file_path, content)
+# ---------------------------------------------------
+text_files = spark.sparkContext.wholeTextFiles("books_data/*.txt")
+library_df = text_files.toDF(["file_path", "content"])
+
+# Extract only the file name from the full path
+library_df = library_df.withColumn(
+    "file_name",
+    regexp_extract(col("file_path"), r"([^/]+)$", 1)
+)
+
+# ---------------------------------------------------
+# Step 3: Extract metadata fields using regex
+# ---------------------------------------------------
+library_df = (
+    library_df
+    .withColumn("book_title", regexp_extract(col("content"), r"Title:\s*(.*)", 1))
+    .withColumn("release_info", regexp_extract(col("content"), r"Release [Dd]ate:\s*([A-Za-z0-9, ]+)", 1))
+    .withColumn("book_language", regexp_extract(col("content"), r"Language:\s*(.*)", 1))
+    .withColumn("char_encoding", regexp_extract(col("content"), r"Character set encoding:\s*(.*)", 1))
+)
+
+# ---------------------------------------------------
+# Step 4: Perform analysis on extracted metadata
+# ---------------------------------------------------
+print("=== Sample Extracted Metadata ===")
+library_df.select("file_name", "book_title", "book_language").show()
+
+# A. Count number of books released per year
+# Extract 4-digit year from release info
+library_df = library_df.withColumn(
+    "release_year",
+    regexp_extract(col("release_info"), r"(\d{4})", 1)
+)
+
+print("=== Number of Books by Release Year ===")
+library_df.groupBy("release_year").count().show()
+
+# B. Identify the most frequent language
+print("=== Most Frequent Language ===")
+library_df.groupBy("book_language") \
+          .count() \
+          .orderBy(col("count").desc()) \
+          .show(1)
+
+# C. Compute average length of titles
+print("=== Average Book Title Length ===")
+library_df.select(
+    avg(length(col("book_title"))).alias("average_title_length")
+).show()
+
+spark.stop()
