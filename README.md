@@ -1,4 +1,4 @@
-# PySpark Assignment 1
+# MLBD Assignment 1
 
 
 
@@ -78,12 +78,6 @@ Columns:
 
 ###  Metadata Extraction
 
-Extracted using regex:
-
-* Title
-* Release Date
-* Language
-* Encoding
 
 Analysis performed:
 
@@ -123,7 +117,7 @@ Used to identify most similar books.
 
  
 
-##  PART 3 — Author Influence Network
+## Author Influence Network
 
 Authors connected if their books were published within a defined time window (e.g., 5 years).
 
